@@ -4,6 +4,7 @@ Python OpenGL practical application.
 """
 # Python built-in modules
 import os                           # os function, i.e. checking file status
+import ctypes as ct
 
 # External, non built-in modules
 import OpenGL.GL as GL              # standard Python OpenGL wrapper
@@ -64,8 +65,8 @@ class SimpleTriangle:
         self.shader = shader
 
         # triangle position buffer
-        position = np.array(((0, .5, 0), (.5, -.5, 0), (-.5, -.5, 0), (0, 0, 0), (-.5, -.5, 0), (-.5, -.5, 0)), 'f')
-        normals = np.array(((0, 0, -1), (0.57735026919, -0.57735026919, -0.57735026919), (-0.57735026919, -0.57735026919, -0.57735026919),
+        position = np.array(((0, .5, 0), (.5, -.5, 0), (-.5, -.5, 0), (0, -1.5, 0), (.5, -.5, 0), (-.5, -.5, 0)), 'f')
+        normals = np.array(((0, 0, -1), (0.70710678118, 0, -0.70710678118), (-0.70710678118, 0, -0.70710678118),
         (0, -1, 0), (0.57735026919, -0.57735026919, -0.57735026919), (-0.57735026919, -0.57735026919, -0.57735026919)), 'f')
 
         self.glid = GL.glGenVertexArrays(1)  # create OpenGL vertex array id
@@ -75,13 +76,13 @@ class SimpleTriangle:
         # bind the vbo, upload position data to GPU, declare its size and type
         GL.glEnableVertexAttribArray(0)      # assign to layout = 0 attribute
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.buffers[0])
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, position, GL.GL_STATIC_DRAW)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, position.size * ct.sizeof(ct.c_float), position, GL.GL_STATIC_DRAW)
         GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False, 0, None)
 
         # Bind normals
         GL.glEnableVertexAttribArray(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.buffers[1])
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, normals, GL.GL_STATIC_DRAW)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, normals.size * ct.sizeof(ct.c_float), normals, GL.GL_STATIC_DRAW)
         GL.glVertexAttribPointer(1, 3, GL.GL_FLOAT, False, 0, None)
 
         # cleanup and unbind so no accidental subsequent state update
