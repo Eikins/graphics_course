@@ -3,15 +3,16 @@
 Python OpenGL practical application.
 """
 # Python built-in modules
-import os                           # os function, i.e. checking file status
-import ctypes as ct
+import os                          # exit, system arguments
 
-# External, non built-in modules
+# External, non-python built-in modules
 import OpenGL.GL as GL              # standard Python OpenGL wrapper
 import glfw                         # lean window system wrapper for OpenGL
 import numpy as np                  # all matrix manipulations & OpenGL args
-from camera import Camera
-from transform import vec, rotate
+import time
+
+vs_file = "vertex_shader.vs"
+fs_file = "fragment_shader01.fs"
 
 # ------------ low level OpenGL object wrappers ----------------------------
 class Shader:
@@ -20,7 +21,7 @@ class Shader:
     def _compile_shader(src, shader_type):
         src = open(src, 'r').read() if os.path.exists(src) else src
         src = src.decode('ascii') if isinstance(src, bytes) else src
-        shader = GL.glCreateShader(shader_type) # pylint: disable=E1111
+        shader = GL.glCreateShader(shader_type)
         GL.glShaderSource(shader, src)
         GL.glCompileShader(shader)
         status = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
@@ -57,104 +58,102 @@ class Shader:
             GL.glDeleteProgram(self.glid)  # object dies => destroy GL object
 
 
-# ------------  Scene object classes ------------------------------------------
-class SimpleTriangle:
-    """Hello triangle object"""
+# ------------  simple square -----------------------------------------
+class SimpleSquare:
+    """Simple square object"""
 
-    def __init__(self, shader):
-        self.shader = shader
+    def __init__(self):
 
-        # triangle position buffer
-        position = np.array(((0, .5, 0), (.5, -.5, 0), (-.5, -.5, 0), (0, -1.5, 0), (.5, -.5, 0), (-.5, -.5, 0)), 'f')
-        normals = np.array(((0, 0, -1), (0.70710678118, 0, -0.70710678118), (-0.70710678118, 0, -0.70710678118),
-        (0, -1, 0), (0.57735026919, -0.57735026919, -0.57735026919), (-0.57735026919, -0.57735026919, -0.57735026919)), 'f')
+        # array of vertices (2 triangles, with TRIANGLE_FAN)
+        position = np.array(((-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)), 'f')
 
-        self.glid = GL.glGenVertexArrays(1)  # create OpenGL vertex array id
-        GL.glBindVertexArray(self.glid)      # activate to receive state below
-        self.buffers = GL.glGenBuffers(2)  # create buffer for position attrib
+        self.glid = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(self.glid)
+        self.buffers = [GL.glGenBuffers(1)]
 
         # bind the vbo, upload position data to GPU, declare its size and type
-        GL.glEnableVertexAttribArray(0)      # assign to layout = 0 attribute
+        GL.glEnableVertexAttribArray(0)  # activates for current v.array only
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.buffers[0])
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, position.size * ct.sizeof(ct.c_float), position, GL.GL_STATIC_DRAW)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, position, GL.GL_STATIC_DRAW)
         GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False, 0, None)
-
-        # Bind normals
-        GL.glEnableVertexAttribArray(1)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.buffers[1])
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, normals.size * ct.sizeof(ct.c_float), normals, GL.GL_STATIC_DRAW)
-        GL.glVertexAttribPointer(1, 3, GL.GL_FLOAT, False, 0, None)
 
         # cleanup and unbind so no accidental subsequent state update
         GL.glBindVertexArray(0)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+        
+    def draw(self, shader, mouse_pos, time, aspect_ratio):
+        if(shader.glid):
+            GL.glUseProgram(shader.glid)
 
-    def draw(self, camera, lightDirection):
-        GL.glUseProgram(self.shader.glid)
-
-        # Bind camera matrix property
-        vm_ptr = GL.glGetUniformLocation(self.shader.glid, "_ProjectionViewMatrix")
-        GL.glUniformMatrix4fv(vm_ptr, 1, True, camera._ProjectionViewMatrix)
-        light_ptr = GL.glGetUniformLocation(self.shader.glid, "_LightDirection")
-        GL.glUniform3fv(light_ptr, 1, lightDirection)
-
-
-        # draw triangle as GL_TRIANGLE vertex array, draw array call
-        GL.glBindVertexArray(self.glid)
-        GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
-        GL.glBindVertexArray(0)
-
-
+            # send uniform variables to the shader 
+            GL.glUniform1f(GL.glGetUniformLocation(shader.glid,"time"),time)
+            GL.glUniform1f(GL.glGetUniformLocation(shader.glid,"aspectRatio"),aspect_ratio)
+            GL.glUniform2f(GL.glGetUniformLocation(shader.glid,"mousePos"),
+                           mouse_pos[0],mouse_pos[1])
+            
+            # draw triangle as GL_TRIANGLE vertex array, draw array call
+            GL.glBindVertexArray(self.glid)
+            GL.glDrawArrays(GL.GL_TRIANGLE_FAN, 0, 4)
+            GL.glBindVertexArray(0)
 
     def __del__(self):
         GL.glDeleteVertexArrays(1, [self.glid])
         GL.glDeleteBuffers(1, self.buffers)
 
 
-# ------------  Viewer class & window management ------------------------------
 class Viewer:
     """ GLFW viewer window, with classic initialization & graphics loop """
 
-    def __init__(self, camera, lightDirection, width=640, height=480):
+    def __init__(self, width=640, height=480):
+        self.size = np.array([width,height])
 
         # version hints: create GL window with >= OpenGL 3.3 and core profile
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL.GL_TRUE)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.RESIZABLE, False)
-        self.win = glfw.create_window(width, height, 'Viewer', None, None)
-
-        # Attach camera
-        self.camera = camera
-        self._LightDirection = lightDirection
+        glfw.window_hint(glfw.RESIZABLE, True)
+        self.win = glfw.create_window(width, height, "Viewer", None, None)
 
         # make win's OpenGL context current; no OpenGL calls can happen before
         glfw.make_context_current(self.win)
-
-        # register event handlers
-        glfw.set_key_callback(self.win, self.on_key)
-
+        
         # useful message to check OpenGL renderer characteristics
         print('OpenGL', GL.glGetString(GL.GL_VERSION).decode() + ', GLSL',
               GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode() +
               ', Renderer', GL.glGetString(GL.GL_RENDERER).decode())
 
         # initialize GL by setting viewport and default render characteristics
+        GL.glDisable(GL.GL_DEPTH_TEST) # no need for depth test (just a fragment shader on the entire screen here)
         GL.glClearColor(0.1, 0.1, 0.1, 0.1)
 
-        # initially empty list of object to draw
-        self.drawables = []
+        # register event handlers
+        glfw.set_key_callback(self.win, self.on_key)
+        glfw.set_mouse_button_callback(self.win,self.on_mouse_button)
+        glfw.set_cursor_pos_callback(self.win,self.on_mouse_pos)
+        glfw.set_window_size_callback(self.win, self.on_size)
 
+        self.ray_tracer = Shader(vs_file, fs_file)
+        self.square = SimpleSquare()
+        self.mouse_pos = np.array([0.0,0.0])
+        self.mouse_pos_click = np.array([0.0,0.0])
+        self.mouse_offset = np.array([0.0,0.0])
+
+    def on_size(self, win, width, height):
+        """ window size update => update viewport to new framebuffer size """
+        self.size = np.array([width,height])
+        GL.glViewport(0, 0, *self.size)
+        
     def run(self):
-        """ Main render loop for this OpenGL window """
+        """ main render loop for this OpenGL window """
+        begin = time.time()
         while not glfw.window_should_close(self.win):
-            # clear draw buffer
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+            # clear draw buffer and depth buffer
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
-            # draw our scene objects
-            for drawable in self.drawables:
-                drawable.draw(self.camera, self._LightDirection)
+            # draw our square, mapped on the entire screen
+            self.square.draw(self.ray_tracer,self.mouse_pos+self.mouse_offset,
+                             time.time()-begin,self.size[1]/self.size[0])
 
             # flush render commands, and swap draw buffers
             glfw.swap_buffers(self.win)
@@ -162,44 +161,33 @@ class Viewer:
             # Poll for and process events
             glfw.poll_events()
 
-    def add(self, *drawables):
-        """ add objects to draw in this window """
-        self.drawables.extend(drawables)
-
     def on_key(self, _win, key, _scancode, action, _mods):
-        """ 'Q' or 'Escape' quits """
-        if action == glfw.PRESS or action == glfw.REPEAT:
+        if action == glfw.PRESS:
+            """ 'Q' or 'Escape' quits """
             if key == glfw.KEY_ESCAPE or key == glfw.KEY_Q:
                 glfw.set_window_should_close(self.win, True)
 
-            if(key == glfw.KEY_LEFT):
-                self.camera.SetPosition(self.camera.position + vec(-1, 0, 0) * 0.05)
-            if(key == glfw.KEY_RIGHT):
-                self.camera.SetPosition(self.camera.position + vec(1, 0, 0) * 0.05)
-            if(key == glfw.KEY_UP):
-                self.camera.SetPosition(self.camera.position + vec(0, 1, 0) * 0.05)
-            if(key == glfw.KEY_DOWN):
-                self.camera.SetPosition(self.camera.position + vec(0, -1, 0) * 0.05)
+            """ 'R' reloads shader files """
+            if key == key == glfw.KEY_R:
+                self.ray_tracer = Shader(vs_file, fs_file)
+                if self.ray_tracer.glid:
+                    print('Shader successfully reloaded.')
 
-            if(key == glfw.KEY_R):
-                self._LightDirection = (rotate(vec(0, 1, 0), 0.5) @ vec(self._LightDirection[0], self._LightDirection[1], self._LightDirection[2], 1))[0:3]
-
-            for drawable in self.drawables:
-                if hasattr(drawable, 'key_handler'):
-                    drawable.key_handler(key)
-
+    def on_mouse_button(self, _win, _button, action, _mods):
+        if action == glfw.PRESS:
+            self.mouse_pos_click = np.array(glfw.get_cursor_pos(self.win))/self.size
+        elif action == glfw.RELEASE:
+            self.mouse_pos += self.mouse_offset
+            self.mouse_offset = np.array([0,0])
+        
+    def on_mouse_pos(self, _win, x, y):
+        if glfw.get_mouse_button(self.win,glfw.MOUSE_BUTTON_LEFT)==glfw.PRESS:
+            self.mouse_offset = (([x,y]/self.size)-self.mouse_pos_click)*[2,-2]
+        
 # -------------- main program and scene setup --------------------------------
 def main():
-    """ create window, add shaders & scene objects, then run rendering loop """
-    width = 640
-    height = 480
-
-    camera = Camera(vec(0, 0, -5), 60, height / width, .3, 1000)
-    viewer = Viewer(camera, vec(0, 0, 1), width, height)
-    color_shader = Shader("color.vert", "color.frag")
-
-    # place instances of our basic objects
-    viewer.add(SimpleTriangle(color_shader))
+    """ create a window, add scene objects, then run rendering loop """
+    viewer = Viewer()
 
     # start rendering loop
     viewer.run()
