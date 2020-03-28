@@ -32,7 +32,7 @@ python viewer.py
 
 ### Controls
 
-Use the `Mouse` to move the split bar.
+Use the `Mouse` to move the split bar.  
 ![Core](media/mouse_usage.gif)
 
 Press `Space` to freeze the time.
