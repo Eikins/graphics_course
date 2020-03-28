@@ -11,9 +11,6 @@ import glfw                         # lean window system wrapper for OpenGL
 import numpy as np                  # all matrix manipulations & OpenGL args
 import time
 
-vs_file = "vertex_shader.vs"
-fs_file = "fragment_shader01.fs"
-
 # ------------ low level OpenGL object wrappers ----------------------------
 class Shader:
     """ Helper class to create and automatically destroy shader program """
@@ -81,16 +78,16 @@ class SimpleSquare:
         GL.glBindVertexArray(0)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
         
-    def draw(self, shader, mouse_pos, time, aspect_ratio):
+    def draw(self, shader, mouse_pos, time, aspect_ratio, size):
         if(shader.glid):
             GL.glUseProgram(shader.glid)
 
             # send uniform variables to the shader 
-            GL.glUniform1f(GL.glGetUniformLocation(shader.glid,"time"),time)
-            GL.glUniform1f(GL.glGetUniformLocation(shader.glid,"aspectRatio"),aspect_ratio)
-            GL.glUniform2f(GL.glGetUniformLocation(shader.glid,"mousePos"),
-                           mouse_pos[0],mouse_pos[1])
-            
+            GL.glUniform1f(GL.glGetUniformLocation(shader.glid,"_Time"), time)
+            GL.glUniform1f(GL.glGetUniformLocation(shader.glid,"_AspectRatio"), aspect_ratio)
+            GL.glUniform2f(GL.glGetUniformLocation(shader.glid,"_MousePos"), mouse_pos[0],mouse_pos[1])
+            GL.glUniform2f(GL.glGetUniformLocation(shader.glid,"_ScreenSize"), size[0], size[1])
+
             # draw triangle as GL_TRIANGLE vertex array, draw array call
             GL.glBindVertexArray(self.glid)
             GL.glDrawArrays(GL.GL_TRIANGLE_FAN, 0, 4)
@@ -133,7 +130,14 @@ class Viewer:
         glfw.set_cursor_pos_callback(self.win,self.on_mouse_pos)
         glfw.set_window_size_callback(self.win, self.on_size)
 
-        self.ray_tracer = Shader(vs_file, fs_file)
+        self.programs = [
+            Shader("vertex_shader.vs", "fragment_raycast.fs"),
+            Shader("vertex_shader.vs", "fragment_raycast_shaded.fs"),
+            Shader("vertex_shader.vs", "fragment_raytrace.fs")
+            ]
+        self.program = 0
+        self.freezeTime = False
+        self.frozenTime = 0
         self.square = SimpleSquare()
         self.mouse_pos = np.array([0.0,0.0])
         self.mouse_pos_click = np.array([0.0,0.0])
@@ -152,8 +156,8 @@ class Viewer:
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
             # draw our square, mapped on the entire screen
-            self.square.draw(self.ray_tracer,self.mouse_pos+self.mouse_offset,
-                             time.time()-begin,self.size[1]/self.size[0])
+            t = self.frozenTime - begin if self.freezeTime else time.time() - begin
+            self.square.draw(self.programs[self.program], self.mouse_pos + self.mouse_offset, t, self.size[1]/self.size[0], self.size)
 
             # flush render commands, and swap draw buffers
             glfw.swap_buffers(self.win)
@@ -167,11 +171,22 @@ class Viewer:
             if key == glfw.KEY_ESCAPE or key == glfw.KEY_Q:
                 glfw.set_window_should_close(self.win, True)
 
-            """ 'R' reloads shader files """
+            """ 'Enter' change program """
+            if key == glfw.KEY_ENTER:
+                self.program = (self.program + 1) % len(self.programs)
+
+            """ 'Space' freeze time """
+            if key == glfw.KEY_SPACE:
+                self.freezeTime = not self.freezeTime
+                self.frozenTime = time.time()
+
+            """ 'R' reloads shader files 
             if key == key == glfw.KEY_R:
                 self.ray_tracer = Shader(vs_file, fs_file)
                 if self.ray_tracer.glid:
-                    print('Shader successfully reloaded.')
+                    print('Shader successfully reloaded.')"""
+
+
 
     def on_mouse_button(self, _win, _button, action, _mods):
         if action == glfw.PRESS:
