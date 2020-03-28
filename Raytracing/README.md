@@ -32,11 +32,10 @@ python viewer.py
 
 ### Controls
 
+Press `Space` to freeze the time.  
+Press `Enter` to change the program.  
 Use the `Mouse` to move the split bar.  
 ![Core](media/mouse_usage.gif)
-
-Press `Space` to freeze the time.
-Press `Enter` to change the program.
 
 ## Programs
 
