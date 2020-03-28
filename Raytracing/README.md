@@ -6,7 +6,10 @@
 * [Install](#Install)  
 * [Usage](#Usage)  
   * [Controls](#Controls)
-
+* [Programs](#Programs)  
+  * [Depth & Normals](#depth--normals)  
+  * [Basic Shading](#basic-shading)
+  * [Raytracing](#raytracing)
 
 ## Install
 
