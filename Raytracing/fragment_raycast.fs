@@ -172,4 +172,5 @@ void main()
     outColor = vec4(paint(outColor.xyz, vec3(0.2, 0.16, 0.16), segment(vec2(_MousePos.x - 0.01, -0.01), vec2(_MousePos.x - 0.02, 0), uv), 4.0), 1.0);
     outColor = vec4(paint(outColor.xyz, vec3(0.2, 0.16, 0.16), segment(vec2(_MousePos.x + 0.01, 0.01), vec2(_MousePos.x + 0.02, 0), uv), 4.0), 1.0);
     outColor = vec4(paint(outColor.xyz, vec3(0.2, 0.16, 0.16), segment(vec2(_MousePos.x + 0.01, -0.01), vec2(_MousePos.x + 0.02, 0), uv), 4.0), 1.0);
+    
 }
