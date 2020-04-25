@@ -36,7 +36,7 @@ Here are the result with a light of *Intensity of 40* and (from left to right), 
 
 ## To go further
 
-**Physically Base Rendering** in raytracing is interesting, but our objects are homogenous, they don't have textures.
+**Physically Based Rendering** in raytracing is interesting, but our objects are homogenous, they don't have textures.
 
 An usage of PBR is to render objects with a texture for each o the properties : *Albedo (Base Color), Normal, Roughness, Metalness and Ambient Occlusion*.
 
