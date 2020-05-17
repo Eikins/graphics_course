@@ -95,11 +95,17 @@ ShapeOp shops[SHOP_LEN] = ShapeOp[](
   ShapeOp(Shape(OBJECT_TYPE_SPHERE, 0), SDF_OP_BLEND, 1),
   ShapeOp(Shape(OBJECT_TYPE_SPHERE, 1), SDF_OP_BLEND, 2),
   ShapeOp(Shape(OBJECT_TYPE_SPHERE, 2), SDF_OP_BLEND, 3),
+
+//  ShapeOp(Shape(OBJECT_TYPE_SPHERE, 3), SDF_OP_UNION, 4),
   ShapeOp(Shape(OBJECT_TYPE_SPHERE, 3), SDF_OP_BLEND, 4),
+
   ShapeOp(Shape(OBJECT_TYPE_SPHERE, 4), SDF_OP_BLEND, 5),
   ShapeOp(Shape(OBJECT_TYPE_SPHERE, 5), SDF_OP_BLEND, 6),
   ShapeOp(Shape(OBJECT_TYPE_BOX, 0), SDF_OP_BLEND, 7),
-  ShapeOp(Shape(OBJECT_TYPE_BOX, 1), SDF_OP_SUBTRACT, 8),
+
+//  ShapeOp(Shape(OBJECT_TYPE_BOX, 1), SDF_OP_SUBTRACT, 8),
+  ShapeOp(Shape(OBJECT_TYPE_BOX, 1), SDF_OP_BLEND, 8),
+
   ShapeOp(Shape(OBJECT_TYPE_BOX, 2), SDF_OP_SUBTRACT, -1),
   ShapeOp(Shape(OBJECT_TYPE_PLANE, 0), SDF_OP_UNION, -1)
 );
