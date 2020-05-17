@@ -30,23 +30,11 @@ python viewer.py
 
 ## Results
 
-Here are the result with a light of *Intensity of 40* and (from left to right), metallic spheres with a roughness of *0.1, 0.3, 0.5, 0.7, 0.9 and 1.0*.
+Results with blend operations:
+![Core](media/rm_result_blend.png)
 
-![Core](media/pbr_result.png)
+Results with blend operations, and a union on the center right sphere:
+![Core](media/rm_result_union.png)
 
-## To go further
-
-**Physically Base Rendering** in raytracing is interesting, but our objects are homogenous, they don't have textures.
-
-An usage of PBR is to render objects with a texture for each o the properties : *Albedo (Base Color), Normal, Roughness, Metalness and Ambient Occlusion*.
-
-I decided to implement this technique in my [3D Sea Project](https://github.com/Eikins/3D-Sea-Project) in the same course.
-
-I decided to use the same *Cook-Torrance BRDF*, and used both Maxime lecture and [Unreal Developper Brian Karis Comparison of BRDF](http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html) as reference.
-
-The complete fragment shader code is available [here](media/pbr.v.glsl).  
-The next step will be to implement indirect lighting using cubemap reflections.
-
-I used textures from https://freepbr.com/.
-
-![PBR Sea](media/pbr_sea.jpg)
+Results with blend operations, and subtracting the center boxe:
+![Core](media/rm_result_sub.png)
